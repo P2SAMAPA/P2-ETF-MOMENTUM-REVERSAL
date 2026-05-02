@@ -1,0 +1,5 @@
+[lint]
+select = ["E", "F", "I", "N"]
+
+[lint.per-file-ignores]
+"logging_utils.py" = ["N802"]  # formatTime must match logging.Formatter API
