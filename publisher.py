@@ -32,24 +32,16 @@ def push_results(
     try:
         existing = load_dataset(hf_repo, split="train", token=hf_token)
         df_existing = existing.to_pandas()
-        df_existing["date"] = pd.to_datetime(df_existing["date"]).dt.strftime(
-            "%Y-%m-%d"
-        )
+        df_existing["date"] = pd.to_datetime(df_existing["date"]).dt.strftime("%Y-%m-%d")
         dedup_cols = [
-            c
-            for c in ["date", "ticker", "universe"]
-            if c in df_existing.columns and c in df.columns
+            c for c in ["date", "ticker", "universe"] if c in df_existing.columns and c in df.columns
         ]
         if dedup_cols:
             new_keys = set(zip(*[df[c] for c in dedup_cols]))
-            mask = ~pd.Series(list(zip(*[df_existing[c] for c in dedup_cols]))).isin(
-                new_keys
-            )
+            mask = ~pd.Series(list(zip(*[df_existing[c] for c in dedup_cols]))).isin(new_keys)
             df_existing = df_existing[mask.values]
         combined = pd.concat([df_existing, df], ignore_index=True)
-        dedup_cols2 = [
-            c for c in ["date", "ticker", "universe"] if c in combined.columns
-        ]
+        dedup_cols2 = [c for c in ["date", "ticker", "universe"] if c in combined.columns]
         if dedup_cols2:
             combined = combined.drop_duplicates(subset=dedup_cols2, keep="last")
         log.info(
