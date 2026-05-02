@@ -190,7 +190,9 @@ def fit_ols_weights(
 
     try:
         # Full OLS via least squares
-        coeffs, _, _, _ = np.linalg.lstsq(np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None)
+        coeffs, _, _, _ = np.linalg.lstsq(
+            np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None
+        )
         alpha, beta, gamma, delta = (
             coeffs[1],
             coeffs[2],
@@ -249,10 +251,11 @@ def dispersion_filter(
     median_disp = dispersion_history.median()
     if median_disp < 1e-8:
         return 1.0
-    # Sigmoid-style scaling
+    # Linear scaling — confidence = ratio clipped to [0.2, 1.0]
+    # Avoids sigmoid over-suppression; minimum 20% confidence always passed through
     ratio = current_disp / median_disp
-    confidence = 2.0 / (1.0 + np.exp(-2.0 * (ratio - 1.0))) - 1.0
-    return float(np.clip(confidence, 0.0, 1.0))
+    confidence = float(np.clip(ratio, 0.2, 1.0))
+    return confidence
 
 
 def run_engine(
@@ -283,7 +286,9 @@ def run_engine(
 
     # Forward returns for OLS fitting
     log_prices = np.log(prices)
-    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(how="all")
+    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(
+        how="all"
+    )
 
     # Dispersion history tracker
     disp_history: list[float] = []
@@ -357,7 +362,9 @@ def run_engine(
             print(f"  Processed {i + 1}/{len(valid_dates)} dates...")
 
     df = pd.DataFrame(rows)
-    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    df["rank"] = (
+        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
     scores_path = out / "scores.csv"
     df.to_csv(scores_path, index=False)
