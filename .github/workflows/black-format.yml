@@ -30,4 +30,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet && echo "No changes" || (git add -A && git commit -m "style: auto black formatting" && git push)
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add -A
+            git commit -m "style: auto black formatting"
+            git pull --rebase origin main
+            git push
+          fi
