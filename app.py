@@ -24,20 +24,51 @@ HF_DATA_REPO = "P2SAMAPA/fi-etf-macro-signal-master-data"
 
 FI_TICKERS = ["TLT", "VCIT", "LQD", "HYG", "VNQ", "GLD", "SLV"]
 EQ_TICKERS = [
-    "SPY", "QQQ", "XLK", "XLF", "XLE", "XLV", "XLI",
-    "XLY", "XLP", "XLU", "GDX", "XME", "IWM", "IWF",
-    "XSD", "XBI", "XLB", "XLRE",
+    "SPY",
+    "QQQ",
+    "XLK",
+    "XLF",
+    "XLE",
+    "XLV",
+    "XLI",
+    "XLY",
+    "XLP",
+    "XLU",
+    "GDX",
+    "XME",
+    "IWM",
+    "IWF",
+    "XSD",
+    "XBI",
+    "XLB",
+    "XLRE",
 ]
 
 UNIVERSE_COLOURS = {
-    "TLT": "#1B4F8A", "VCIT": "#2E86C1", "LQD": "#148F77",
-    "HYG": "#B7950B", "VNQ": "#6C3483", "GLD": "#CA6F1E",
-    "SLV": "#717D7E", "SPY": "#C0392B", "QQQ": "#922B21",
-    "XLK": "#1A5276", "XLF": "#117A65", "XLE": "#784212",
-    "XLV": "#1D8348", "XLI": "#2471A3", "XLY": "#7D6608",
-    "XLP": "#6E2F83", "XLU": "#17202A", "GDX": "#B7950B",
-    "XME": "#5D6D7E", "IWM": "#E74C3C", "IWF": "#1ABC9C",
-    "XSD": "#8E44AD", "XBI": "#E67E22", "XLB": "#2ECC71",
+    "TLT": "#1B4F8A",
+    "VCIT": "#2E86C1",
+    "LQD": "#148F77",
+    "HYG": "#B7950B",
+    "VNQ": "#6C3483",
+    "GLD": "#CA6F1E",
+    "SLV": "#717D7E",
+    "SPY": "#C0392B",
+    "QQQ": "#922B21",
+    "XLK": "#1A5276",
+    "XLF": "#117A65",
+    "XLE": "#784212",
+    "XLV": "#1D8348",
+    "XLI": "#2471A3",
+    "XLY": "#7D6608",
+    "XLP": "#6E2F83",
+    "XLU": "#17202A",
+    "GDX": "#B7950B",
+    "XME": "#5D6D7E",
+    "IWM": "#E74C3C",
+    "IWF": "#1ABC9C",
+    "XSD": "#8E44AD",
+    "XBI": "#E67E22",
+    "XLB": "#2ECC71",
     "XLRE": "#F39C12",
 }
 
@@ -48,8 +79,13 @@ def load_results() -> tuple[pd.DataFrame, bool]:
     try:
         hf_token = os.environ.get("HF_TOKEN")
         api = HfApi()
-        files = list(api.list_repo_files(HF_RESULTS_REPO, repo_type="dataset",
-                                          token=hf_token if hf_token else None))
+        files = list(
+            api.list_repo_files(
+                HF_RESULTS_REPO,
+                repo_type="dataset",
+                token=hf_token if hf_token else None,
+            )
+        )
         parquet_files = [f for f in files if f.endswith(".parquet")]
         if not parquet_files:
             raise ValueError("No parquet files found in HF dataset repo.")
@@ -68,7 +104,9 @@ def load_results() -> tuple[pd.DataFrame, bool]:
 
         df["date"] = pd.to_datetime(df["date"])
         if "universe" not in df.columns:
-            df["universe"] = df["ticker"].apply(lambda t: "fi" if t in FI_TICKERS else "equity")
+            df["universe"] = df["ticker"].apply(
+                lambda t: "fi" if t in FI_TICKERS else "equity"
+            )
 
         dedup_cols = [c for c in ["date", "ticker", "universe"] if c in df.columns]
         if dedup_cols:
@@ -90,19 +128,27 @@ def _synthetic_demo() -> pd.DataFrame:
         scores = rng.normal(0, 1, len(tickers))
         for i, ticker in enumerate(tickers):
             universe = "fi" if ticker in FI_TICKERS else "equity"
-            rows.append({
-                "date": date, "ticker": ticker,
-                "score_raw": float(scores[i]),
-                "score_adj": float(scores[i]),
-                "ci_lower": float(scores[i] - rng.uniform(0.2, 0.5)),
-                "ci_upper": float(scores[i] + rng.uniform(0.2, 0.5)),
-                "vix": float(rng.uniform(12, 35)),
-                "dispersion_confidence": float(rng.uniform(0.4, 1.0)),
-                "alpha_w": 0.4, "beta_w": 0.3, "gamma_w": 0.2, "delta_w": 0.1,
-                "universe": universe,
-            })
+            rows.append(
+                {
+                    "date": date,
+                    "ticker": ticker,
+                    "score_raw": float(scores[i]),
+                    "score_adj": float(scores[i]),
+                    "ci_lower": float(scores[i] - rng.uniform(0.2, 0.5)),
+                    "ci_upper": float(scores[i] + rng.uniform(0.2, 0.5)),
+                    "vix": float(rng.uniform(12, 35)),
+                    "dispersion_confidence": float(rng.uniform(0.4, 1.0)),
+                    "alpha_w": 0.4,
+                    "beta_w": 0.3,
+                    "gamma_w": 0.2,
+                    "delta_w": 0.1,
+                    "universe": universe,
+                }
+            )
     df = pd.DataFrame(rows)
-    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    df["rank"] = (
+        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
     return df
 
 
@@ -133,7 +179,9 @@ with st.sidebar:
 # ── Load data ─────────────────────────────────────────────────────────────────
 df_all, is_demo = load_results()
 if is_demo:
-    st.info("📊 Displaying **synthetic demo data**. Live results appear after the next training run.")
+    st.info(
+        "📊 Displaying **synthetic demo data**. Live results appear after the next training run."
+    )
 
 if universe_opt != "combined":
     df_all = df_all[df_all["universe"] == universe_opt]
@@ -153,7 +201,11 @@ st.caption(
 )
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
-avg_conf = df_today["dispersion_confidence"].mean() if "dispersion_confidence" in df_today.columns else 0
+avg_conf = (
+    df_today["dispersion_confidence"].mean()
+    if "dispersion_confidence" in df_today.columns
+    else 0
+)
 avg_vix = df_today["vix"].mean() if "vix" in df_today.columns else 0
 alpha_w = df_today["alpha_w"].mean() if "alpha_w" in df_today.columns else 0.4
 gamma_w = df_today["gamma_w"].mean() if "gamma_w" in df_today.columns else 0.2
@@ -168,85 +220,150 @@ c5.metric("Reversal Weight (γ)", f"{gamma_w:.2f}")
 st.divider()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Today's Rankings",
-    "📈 Score History",
-    "⚖️ Weight Dynamics",
-    "ℹ️ Engine Info",
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "📊 Today's Rankings",
+        "📈 Score History",
+        "⚖️ Weight Dynamics",
+        "ℹ️ Engine Info",
+    ]
+)
 
 with tab1:
     st.subheader(f"Rankings for {latest_date.date()}")
     try:
         import plotly.graph_objects as go
 
-        df_plot = df_today.sort_values("score_adj", ascending=False).reset_index(drop=True)
+        df_plot = df_today.sort_values("score_adj", ascending=False).reset_index(
+            drop=True
+        )
         colours = [UNIVERSE_COLOURS.get(t, "#888") for t in df_plot["ticker"]]
 
         fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=df_plot["ticker"], y=df_plot["score_adj"],
-            marker_color=colours, marker_line_width=0,
-            text=df_plot.apply(lambda r: f"#{int(r['rank'])}  {r['score_adj']:.2f}", axis=1),
-            textposition="outside", textfont=dict(size=10), name="Score (z)",
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=df_plot["ticker"],
+                y=df_plot["score_adj"],
+                marker_color=colours,
+                marker_line_width=0,
+                text=df_plot.apply(
+                    lambda r: f"#{int(r['rank'])}  {r['score_adj']:.2f}", axis=1
+                ),
+                textposition="outside",
+                textfont=dict(size=10),
+                name="Score (z)",
+            )
+        )
         if show_ci and "ci_lower" in df_plot.columns:
-            fig.update_traces(error_y=dict(
-                type="data", symmetric=False,
-                array=(df_plot["ci_upper"] - df_plot["score_adj"]).clip(lower=0).tolist(),
-                arrayminus=(df_plot["score_adj"] - df_plot["ci_lower"]).clip(lower=0).tolist(),
-                color="rgba(80,80,80,0.45)", thickness=1.5, width=4,
-            ))
-        fig.add_hline(y=0, line_dash="dot", line_color="rgba(128,128,128,0.5)", line_width=1)
+            fig.update_traces(
+                error_y=dict(
+                    type="data",
+                    symmetric=False,
+                    array=(df_plot["ci_upper"] - df_plot["score_adj"])
+                    .clip(lower=0)
+                    .tolist(),
+                    arrayminus=(df_plot["score_adj"] - df_plot["ci_lower"])
+                    .clip(lower=0)
+                    .tolist(),
+                    color="rgba(80,80,80,0.45)",
+                    thickness=1.5,
+                    width=4,
+                )
+            )
+        fig.add_hline(
+            y=0,
+            line_dash="dot",
+            line_color="rgba(128,128,128,0.5)",
+            line_width=1,
+        )
         fig.update_layout(
-            title=dict(text=f"Momentum-Reversal Rankings — {latest_date.date()} · sorted best → worst",
-                       font=dict(size=14)),
+            title=dict(
+                text=f"Momentum-Reversal Rankings — {latest_date.date()} · sorted best → worst",
+                font=dict(size=14),
+            ),
             xaxis=dict(title="ETF", tickangle=-35, tickfont=dict(size=11)),
             yaxis=dict(title="Score (z-score)", zeroline=False),
-            showlegend=False, height=540,
+            showlegend=False,
+            height=540,
             margin=dict(t=70, b=90, l=60, r=20),
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
             bargap=0.3,
         )
         st.plotly_chart(fig, use_container_width=True)
     except ImportError:
         st.bar_chart(df_today.set_index("ticker")["score_adj"])
 
-    display_cols = [c for c in ["rank", "ticker", "score_adj", "score_raw",
-                                 "ci_lower", "ci_upper", "vix", "dispersion_confidence"] if c in df_today.columns]
+    display_cols = [
+        c
+        for c in [
+            "rank",
+            "ticker",
+            "score_adj",
+            "score_raw",
+            "ci_lower",
+            "ci_upper",
+            "vix",
+            "dispersion_confidence",
+        ]
+        if c in df_today.columns
+    ]
     st.dataframe(
-        df_today[display_cols].rename(columns={
-            "score_adj": "Score (z)", "score_raw": "Score (raw)",
-            "ci_lower": "CI Lower", "ci_upper": "CI Upper",
-            "dispersion_confidence": "Confidence",
-        }).style.format({
-            "Score (z)": "{:.3f}", "Score (raw)": "{:.4f}",
-            "CI Lower": "{:.3f}", "CI Upper": "{:.3f}",
-            "vix": "{:.1f}", "Confidence": "{:.1%}",
-        }),
-        use_container_width=True, height=350,
+        df_today[display_cols]
+        .rename(
+            columns={
+                "score_adj": "Score (z)",
+                "score_raw": "Score (raw)",
+                "ci_lower": "CI Lower",
+                "ci_upper": "CI Upper",
+                "dispersion_confidence": "Confidence",
+            }
+        )
+        .style.format(
+            {
+                "Score (z)": "{:.3f}",
+                "Score (raw)": "{:.4f}",
+                "CI Lower": "{:.3f}",
+                "CI Upper": "{:.3f}",
+                "vix": "{:.1f}",
+                "Confidence": "{:.1%}",
+            }
+        ),
+        use_container_width=True,
+        height=350,
     )
 
 with tab2:
     st.subheader("Score History — Top ETFs")
-    pivot = df.pivot_table(index="date", columns="ticker", values="score_adj").sort_index()
+    pivot = df.pivot_table(
+        index="date", columns="ticker", values="score_adj"
+    ).sort_index()
     top_tickers = pivot.abs().mean().nlargest(top_n).index.tolist()
     try:
         import plotly.graph_objects as go
+
         fig2 = go.Figure()
         for ticker in top_tickers:
             if ticker not in pivot.columns:
                 continue
             s = pivot[ticker].dropna()
-            fig2.add_trace(go.Scatter(
-                x=s.index, y=s.values, mode="lines", name=ticker,
-                line=dict(width=2, color=UNIVERSE_COLOURS.get(ticker, "#888")),
-            ))
+            fig2.add_trace(
+                go.Scatter(
+                    x=s.index,
+                    y=s.values,
+                    mode="lines",
+                    name=ticker,
+                    line=dict(width=2, color=UNIVERSE_COLOURS.get(ticker, "#888")),
+                )
+            )
         fig2.add_hline(y=0, line_dash="dot", line_color="gray", line_width=1)
         fig2.update_layout(
             title=f"Top {top_n} ETFs by Mean |Score|",
-            xaxis_title="Date", yaxis_title="Score (z-score)", height=420,
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            xaxis_title="Date",
+            yaxis_title="Score (z-score)",
+            height=420,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
         )
         st.plotly_chart(fig2, use_container_width=True)
@@ -262,23 +379,44 @@ with tab3:
     if all(c in df.columns for c in ["alpha_w", "beta_w", "gamma_w", "delta_w"]):
         weight_df = (
             df.groupby("date")[["alpha_w", "beta_w", "gamma_w", "delta_w"]]
-            .mean().reset_index().sort_values("date").tail(lookback)
+            .mean()
+            .reset_index()
+            .sort_values("date")
+            .tail(lookback)
         )
         try:
             import plotly.graph_objects as go
+
             fig3 = go.Figure()
-            colours_w = {"alpha_w": "#1B4F8A", "beta_w": "#27AE60", "gamma_w": "#E74C3C", "delta_w": "#F39C12"}
-            labels = {"alpha_w": "α (momentum)", "beta_w": "β (core mom)", "gamma_w": "γ (reversal)", "delta_w": "δ (long-run)"}
+            colours_w = {
+                "alpha_w": "#1B4F8A",
+                "beta_w": "#27AE60",
+                "gamma_w": "#E74C3C",
+                "delta_w": "#F39C12",
+            }
+            labels = {
+                "alpha_w": "α (momentum)",
+                "beta_w": "β (core mom)",
+                "gamma_w": "γ (reversal)",
+                "delta_w": "δ (long-run)",
+            }
             for col in ["alpha_w", "beta_w", "gamma_w", "delta_w"]:
-                fig3.add_trace(go.Scatter(
-                    x=weight_df["date"], y=weight_df[col],
-                    mode="lines", name=labels[col],
-                    line=dict(width=2, color=colours_w[col]),
-                ))
+                fig3.add_trace(
+                    go.Scatter(
+                        x=weight_df["date"],
+                        y=weight_df[col],
+                        mode="lines",
+                        name=labels[col],
+                        line=dict(width=2, color=colours_w[col]),
+                    )
+                )
             fig3.update_layout(
                 title="Rolling OLS Weights Over Time",
-                xaxis_title="Date", yaxis_title="Weight", height=380,
-                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Date",
+                yaxis_title="Weight",
+                height=380,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
             st.plotly_chart(fig3, use_container_width=True)
@@ -287,21 +425,41 @@ with tab3:
 
         # Dispersion confidence
         if "dispersion_confidence" in df.columns:
-            conf_df = df.groupby("date")["dispersion_confidence"].mean().reset_index().tail(lookback)
+            conf_df = (
+                df.groupby("date")["dispersion_confidence"]
+                .mean()
+                .reset_index()
+                .tail(lookback)
+            )
             st.subheader("Cross-Sectional Dispersion Confidence")
-            st.caption("Below 50% = low signal environment; engine scores are dampened.")
+            st.caption(
+                "Below 50% = low signal environment; engine scores are dampened."
+            )
             try:
                 fig4 = go.Figure()
-                conf_colours = ["#E74C3C" if v < 0.5 else "#27AE60" for v in conf_df["dispersion_confidence"]]
-                fig4.add_trace(go.Bar(
-                    x=conf_df["date"], y=conf_df["dispersion_confidence"],
-                    marker_color=conf_colours, name="Confidence",
-                ))
-                fig4.add_hline(y=0.5, line_dash="dash", line_color="gray",
-                               annotation_text="50% threshold")
+                conf_colours = [
+                    "#E74C3C" if v < 0.5 else "#27AE60"
+                    for v in conf_df["dispersion_confidence"]
+                ]
+                fig4.add_trace(
+                    go.Bar(
+                        x=conf_df["date"],
+                        y=conf_df["dispersion_confidence"],
+                        marker_color=conf_colours,
+                        name="Confidence",
+                    )
+                )
+                fig4.add_hline(
+                    y=0.5,
+                    line_dash="dash",
+                    line_color="gray",
+                    annotation_text="50% threshold",
+                )
                 fig4.update_layout(
-                    height=280, yaxis=dict(tickformat=".0%"),
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    height=280,
+                    yaxis=dict(tickformat=".0%"),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                 )
                 st.plotly_chart(fig4, use_container_width=True)
             except ImportError:
@@ -360,9 +518,18 @@ High-conviction long = recent loser + long-term winner + low VIX
 - Jegadeesh & Titman (2001) — *Profitability of Momentum Strategies*
 - De Bondt & Thaler (1985) — *Does the Stock Market Overreact?*
         """)
-        st.link_button("📦 GitHub Repo", "https://github.com/P2SAMAPA/P2-ETF-MOMENTUM-REVERSAL")
-        st.link_button("🤗 Results Dataset", f"https://huggingface.co/datasets/{HF_RESULTS_REPO}")
-        st.link_button("🤗 Input Data", f"https://huggingface.co/datasets/{HF_DATA_REPO}")
+        st.link_button(
+            "📦 GitHub Repo",
+            "https://github.com/P2SAMAPA/P2-ETF-MOMENTUM-REVERSAL",
+        )
+        st.link_button(
+            "🤗 Results Dataset",
+            f"https://huggingface.co/datasets/{HF_RESULTS_REPO}",
+        )
+        st.link_button(
+            "🤗 Input Data",
+            f"https://huggingface.co/datasets/{HF_DATA_REPO}",
+        )
 
 st.divider()
 st.caption(
