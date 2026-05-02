@@ -1,0 +1,88 @@
+name: Run Momentum-Reversal Engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      universe:
+        description: "Universe to run (fi / equity / combined / all)"
+        required: true
+        default: "all"
+  schedule:
+    - cron: "0 3 * * 2"  # every Tuesday 03:00 UTC (after US market close Monday)
+
+jobs:
+  run:
+    name: Run — ${{ matrix.universe }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        universe:
+          - fi
+          - equity
+          - combined
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install numpy (pinned)
+        run: pip install "numpy>=1.24.0,<2.0.0"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run engine — ${{ matrix.universe }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python main.py --universe ${{ matrix.universe }} --output_dir results
+
+      - name: Print metrics — ${{ matrix.universe }}
+        run: |
+          if [ -f results/scores.csv ]; then
+            echo "=== Score summary (${{ matrix.universe }}) ==="
+            python -c "
+          import pandas as pd
+          df = pd.read_csv('results/scores.csv')
+          print(f'Rows: {len(df)}')
+          print(f'Date range: {df.date.min()} → {df.date.max()}')
+          print(f'Tickers: {sorted(df.ticker.unique().tolist())}')
+          latest = df[df.date == df.date.max()].sort_values('rank')
+          print('Top 5 today:')
+          print(latest[['rank','ticker','score_adj','dispersion_confidence']].head())
+            "
+          fi
+
+      - name: Run daily inference — ${{ matrix.universe }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python infer_daily.py --universe ${{ matrix.universe }}
+
+      - name: Upload artifacts — ${{ matrix.universe }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: momentum-reversal-${{ matrix.universe }}-${{ github.run_id }}
+          path: results/
+          retention-days: 30
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install linters
+        run: pip install black ruff
+      - name: black check
+        run: black --check --target-version py311 .
+      - name: ruff check
+        run: ruff check .
