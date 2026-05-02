@@ -9,10 +9,10 @@ import pandas as pd
 from huggingface_hub import hf_hub_download
 
 from logging_utils import get_logger
-from main import COMBINED_TICKERS, EQ_TICKERS, FI_TICKERS, HF_RESULTS_REPO
+from main import COMBINED_TICKERS, EQ_TICKERS, FI_TICKERS
 from momentum_reversal import (
-    MIN_HISTORY,
     DISPERSION_WINDOW,
+    MIN_HISTORY,
     compute_multi_horizon_returns,
     compute_raw_scores,
     cross_sectional_zscore,
@@ -107,7 +107,9 @@ def run_daily_inference(universe: str = "combined") -> None:
         )
 
     daily_df = pd.DataFrame(rows)
-    daily_df["rank"] = daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    daily_df["rank"] = (
+        daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
     log.info(
         "Daily inference: %s | %d ETFs | VIX=%.1f | confidence=%.2f",
@@ -124,6 +126,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
+    parser.add_argument(
+        "--universe", default="combined", choices=["fi", "equity", "combined"]
+    )
     args = parser.parse_args()
     run_daily_inference(args.universe)
