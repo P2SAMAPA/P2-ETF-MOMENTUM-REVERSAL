@@ -19,9 +19,24 @@ HF_RESULTS_REPO = "P2SAMAPA/p2-etf-momentum-reversal-results"
 
 FI_TICKERS = ["TLT", "VCIT", "LQD", "HYG", "VNQ", "GLD", "SLV"]
 EQ_TICKERS = [
-    "SPY", "QQQ", "XLK", "XLF", "XLE", "XLV", "XLI",
-    "XLY", "XLP", "XLU", "GDX", "XME", "IWM", "IWF",
-    "XSD", "XBI", "XLB", "XLRE",
+    "SPY",
+    "QQQ",
+    "XLK",
+    "XLF",
+    "XLE",
+    "XLV",
+    "XLI",
+    "XLY",
+    "XLP",
+    "XLU",
+    "GDX",
+    "XME",
+    "IWM",
+    "IWF",
+    "XSD",
+    "XBI",
+    "XLB",
+    "XLRE",
 ]
 COMBINED_TICKERS = FI_TICKERS + EQ_TICKERS
 
@@ -60,14 +75,12 @@ def cmd_run(args: argparse.Namespace) -> None:
     hf_token = os.environ.get("HF_TOKEN")
     df = load_master_data(hf_token)
     prices, vix = get_universe(df, args.universe)
-
     scores_df = run_engine(
         prices=prices,
         vix=vix,
         universe=args.universe,
         output_dir=args.output_dir,
     )
-
     log.info("Pushing %d rows to HuggingFace...", len(scores_df))
     push_results(scores_df, token=hf_token)
     log.info("Done.")
@@ -75,6 +88,8 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="P2-ETF-MOMENTUM-REVERSAL Engine")
-    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
+    parser.add_argument(
+        "--universe", default="combined", choices=["fi", "equity", "combined"]
+    )
     parser.add_argument("--output_dir", default="results")
     cmd_run(parser.parse_args())
