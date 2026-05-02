@@ -15,12 +15,10 @@ Dispersion filter suppresses signal when cross-sectional spread is low.
 
 from __future__ import annotations
 
-import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 LOOKBACKS = {
@@ -144,7 +142,7 @@ def fit_ols_weights(
         return default
 
     tickers = multi_returns.columns.get_level_values(1).unique().tolist()
-    X_rows, y_rows = [], []
+    x_rows, y_rows = [], []
 
     for date in dates:
         if date not in forward_returns.index:
@@ -176,24 +174,23 @@ def fit_ols_weights(
             r_12m_v = gz("r_12m_skip")
             r_36m_v = gz("r_36m")
 
-            X_rows.append([r_12m_v - r_1m_v, r_6m_v, -r_1m_v, -r_36m_v])
+            x_rows.append([r_12m_v - r_1m_v, r_6m_v, -r_1m_v, -r_36m_v])
             y_rows.append(y_val)
 
-    if len(X_rows) < 50:
+    if len(x_rows) < 50:
         return default
 
-    X = np.array(X_rows)
+    x_mat = np.array(x_rows)
     y = np.array(y_rows)
 
     # Winsorise to prevent outlier contamination
     y = np.clip(y, np.percentile(y, 1), np.percentile(y, 99))
 
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = stats.linregress(X[:, 0], y)  # simplified: use dominant factor
         # Full OLS via least squares
-        coeffs, _, _, _ = np.linalg.lstsq(np.column_stack([np.ones(len(X)), X]), y, rcond=None)
+        coeffs, _, _, _ = np.linalg.lstsq(
+            np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None
+        )
         alpha, beta, gamma, delta = (
             coeffs[1],
             coeffs[2],
@@ -286,7 +283,9 @@ def run_engine(
 
     # Forward returns for OLS fitting
     log_prices = np.log(prices)
-    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(how="all")
+    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(
+        how="all"
+    )
 
     # Dispersion history tracker
     disp_history: list[float] = []
@@ -360,7 +359,9 @@ def run_engine(
             print(f"  Processed {i + 1}/{len(valid_dates)} dates...")
 
     df = pd.DataFrame(rows)
-    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    df["rank"] = (
+        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
     scores_path = out / "scores.csv"
     df.to_csv(scores_path, index=False)
