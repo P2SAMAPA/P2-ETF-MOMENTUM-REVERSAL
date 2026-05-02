@@ -315,9 +315,11 @@ def run_engine(
         adj_weights = vix_regime_adjust(current_weights, vix_level)
 
         # Dispersion filter
+        # multi_ret has MultiIndex columns (ticker, horizon) — slice by horizon level
+        col_horizons = multi_ret.columns.get_level_values(1)
         r12m_today = (
-            multi_ret["r_12m_skip"].loc[date]
-            if "r_12m_skip" in multi_ret.columns
+            multi_ret.xs("r_12m_skip", axis=1, level=1).loc[date]
+            if "r_12m_skip" in col_horizons
             else pd.Series()
         )
         disp_series = pd.Series(disp_history[-DISPERSION_WINDOW:])
