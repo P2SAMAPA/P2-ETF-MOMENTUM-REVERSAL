@@ -8,7 +8,9 @@ from datetime import datetime, timezone
 
 
 class _UTCFormatter(logging.Formatter):
-    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:  # noqa: N802
+    def formatTime(
+        self, record: logging.LogRecord, datefmt: str | None = None
+    ) -> str:  # noqa: N802
         dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
