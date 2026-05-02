@@ -190,9 +190,7 @@ def fit_ols_weights(
 
     try:
         # Full OLS via least squares
-        coeffs, _, _, _ = np.linalg.lstsq(
-            np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None
-        )
+        coeffs, _, _, _ = np.linalg.lstsq(np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None)
         alpha, beta, gamma, delta = (
             coeffs[1],
             coeffs[2],
@@ -286,9 +284,7 @@ def run_engine(
 
     # Forward returns for OLS fitting
     log_prices = np.log(prices)
-    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(
-        how="all"
-    )
+    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(how="all")
 
     # Dispersion history tracker
     disp_history: list[float] = []
@@ -362,9 +358,7 @@ def run_engine(
             print(f"  Processed {i + 1}/{len(valid_dates)} dates...")
 
     df = pd.DataFrame(rows)
-    df["rank"] = (
-        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
-    )
+    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
 
     scores_path = out / "scores.csv"
     df.to_csv(scores_path, index=False)
