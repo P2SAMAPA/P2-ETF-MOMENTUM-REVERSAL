@@ -4,20 +4,21 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 import pandas as pd
 from huggingface_hub import hf_hub_download
 
 from logging_utils import get_logger
-from main import FI_TICKERS, EQ_TICKERS, COMBINED_TICKERS, HF_RESULTS_REPO
+from main import COMBINED_TICKERS, EQ_TICKERS, FI_TICKERS, HF_RESULTS_REPO
 from momentum_reversal import (
+    MIN_HISTORY,
+    DISPERSION_WINDOW,
     compute_multi_horizon_returns,
     compute_raw_scores,
     cross_sectional_zscore,
     dispersion_filter,
     fit_ols_weights,
     vix_regime_adjust,
-    MIN_HISTORY,
-    DISPERSION_WINDOW,
 )
 from publisher import push_results
 
@@ -52,7 +53,6 @@ def run_daily_inference(universe: str = "combined") -> None:
         return
 
     multi_ret = compute_multi_horizon_returns(prices)
-    import numpy as np
     log_p = prices.apply(lambda c: c.apply(lambda x: float(np.log(max(x, 1e-8)))))
     forward_ret = (log_p.shift(-21) - log_p).dropna(how="all")
 
@@ -82,39 +82,50 @@ def run_daily_inference(universe: str = "combined") -> None:
 
     ci_half = 1.96 * raw_scores.std() / max(len(tickers) ** 0.5, 1)
 
-    import numpy as np
     rows = []
     for ticker in tickers:
         score = float(final_z.get(ticker, 0.0))
         raw = float(raw_scores.get(ticker, 0.0))
-        rows.append({
-            "date": today.strftime("%Y-%m-%d"),
-            "ticker": ticker,
-            "score_raw": raw if np.isfinite(raw) else 0.0,
-            "score_adj": score if np.isfinite(score) else 0.0,
-            "ci_lower": (score - ci_half) if np.isfinite(score) else 0.0,
-            "ci_upper": (score + ci_half) if np.isfinite(score) else 0.0,
-            "vix": vix_level,
-            "dispersion_confidence": round(confidence, 4),
-            "alpha_w": round(adj_weights["alpha"], 4),
-            "beta_w": round(adj_weights["beta"], 4),
-            "gamma_w": round(adj_weights["gamma"], 4),
-            "delta_w": round(adj_weights["delta"], 4),
-            "universe": universe,
-        })
+        rows.append(
+            {
+                "date": today.strftime("%Y-%m-%d"),
+                "ticker": ticker,
+                "score_raw": raw if np.isfinite(raw) else 0.0,
+                "score_adj": score if np.isfinite(score) else 0.0,
+                "ci_lower": (score - ci_half) if np.isfinite(score) else 0.0,
+                "ci_upper": (score + ci_half) if np.isfinite(score) else 0.0,
+                "vix": vix_level,
+                "dispersion_confidence": round(confidence, 4),
+                "alpha_w": round(adj_weights["alpha"], 4),
+                "beta_w": round(adj_weights["beta"], 4),
+                "gamma_w": round(adj_weights["gamma"], 4),
+                "delta_w": round(adj_weights["delta"], 4),
+                "universe": universe,
+            }
+        )
 
     daily_df = pd.DataFrame(rows)
-    daily_df["rank"] = daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    daily_df["rank"] = (
+        daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
-    log.info("Daily inference: %s | %d ETFs | VIX=%.1f | confidence=%.2f",
-             today.date(), len(rows), vix_level, confidence)
+    log.info(
+        "Daily inference: %s | %d ETFs | VIX=%.1f | confidence=%.2f",
+        today.date(),
+        len(rows),
+        vix_level,
+        confidence,
+    )
     push_results(daily_df, token=hf_token)
     log.info("Today's scores pushed ✅")
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
+    parser.add_argument(
+        "--universe", default="combined", choices=["fi", "equity", "combined"]
+    )
     args = parser.parse_args()
     run_daily_inference(args.universe)
