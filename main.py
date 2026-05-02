@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 
-import numpy as np
 import pandas as pd
 from huggingface_hub import hf_hub_download
 
@@ -63,9 +62,8 @@ def get_universe(df: pd.DataFrame, universe: str) -> tuple[pd.DataFrame, pd.Seri
     else:
         tickers = [t for t in COMBINED_TICKERS if t in df.columns]
 
-    # Build price series from log-returns (cumsum then exp for log-return input)
-    log_ret = df[tickers].copy()
-    prices = np.exp(log_ret.fillna(0).cumsum()) * 100
+    # Data is ETF closing prices — use directly, forward-fill any gaps
+    prices = df[tickers].copy().ffill()
     vix = df["VIX"] if "VIX" in df.columns else pd.Series(20.0, index=df.index)
     log.info("Universe '%s': %d tickers", universe, len(tickers))
     return prices, vix
@@ -88,6 +86,8 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="P2-ETF-MOMENTUM-REVERSAL Engine")
-    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
+    parser.add_argument(
+        "--universe", default="combined", choices=["fi", "equity", "combined"]
+    )
     parser.add_argument("--output_dir", default="results")
     cmd_run(parser.parse_args())
