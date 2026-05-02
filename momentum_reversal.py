@@ -196,7 +196,12 @@ def fit_ols_weights(
         coeffs, _, _, _ = np.linalg.lstsq(
             np.column_stack([np.ones(len(X)), X]), y, rcond=None
         )
-        alpha, beta, gamma, delta = coeffs[1], coeffs[2], abs(coeffs[3]), abs(coeffs[4])
+        alpha, beta, gamma, delta = (
+            coeffs[1],
+            coeffs[2],
+            abs(coeffs[3]),
+            abs(coeffs[4]),
+        )
         # Normalise so they sum to 1
         total = abs(alpha) + abs(beta) + abs(gamma) + abs(delta) + 1e-8
         return {
@@ -283,7 +288,9 @@ def run_engine(
 
     # Forward returns for OLS fitting
     log_prices = np.log(prices)
-    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(how="all")
+    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(
+        how="all"
+    )
 
     # Dispersion history tracker
     disp_history: list[float] = []
@@ -308,7 +315,11 @@ def run_engine(
         adj_weights = vix_regime_adjust(current_weights, vix_level)
 
         # Dispersion filter
-        r12m_today = multi_ret["r_12m_skip"].loc[date] if "r_12m_skip" in multi_ret.columns else pd.Series()
+        r12m_today = (
+            multi_ret["r_12m_skip"].loc[date]
+            if "r_12m_skip" in multi_ret.columns
+            else pd.Series()
+        )
         disp_series = pd.Series(disp_history[-DISPERSION_WINDOW:])
         confidence = dispersion_filter(r12m_today, disp_series)
         if len(r12m_today) > 0:
@@ -351,7 +362,9 @@ def run_engine(
             print(f"  Processed {i + 1}/{len(valid_dates)} dates...")
 
     df = pd.DataFrame(rows)
-    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    df["rank"] = (
+        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
     scores_path = out / "scores.csv"
     df.to_csv(scores_path, index=False)
