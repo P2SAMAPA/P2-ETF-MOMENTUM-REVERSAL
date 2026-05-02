@@ -45,7 +45,7 @@ def run_daily_inference(universe: str = "combined") -> None:
         tickers = [t for t in COMBINED_TICKERS if t in df.columns]
 
     log_ret = df[tickers].copy()
-    prices = (1 + log_ret.fillna(0)).cumprod() * 100
+    prices = np.exp(log_ret.fillna(0).cumsum()) * 100
     vix = df["VIX"] if "VIX" in df.columns else pd.Series(20.0, index=df.index)
 
     if len(prices) < MIN_HISTORY:
@@ -107,7 +107,9 @@ def run_daily_inference(universe: str = "combined") -> None:
         )
 
     daily_df = pd.DataFrame(rows)
-    daily_df["rank"] = daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    daily_df["rank"] = (
+        daily_df["score_adj"].rank(ascending=False, method="min").astype(int)
+    )
 
     log.info(
         "Daily inference: %s | %d ETFs | VIX=%.1f | confidence=%.2f",
@@ -124,6 +126,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
+    parser.add_argument(
+        "--universe", default="combined", choices=["fi", "equity", "combined"]
+    )
     args = parser.parse_args()
     run_daily_inference(args.universe)
