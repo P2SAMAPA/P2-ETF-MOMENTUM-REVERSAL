@@ -104,9 +104,7 @@ def load_results() -> tuple[pd.DataFrame, bool]:
 
         df["date"] = pd.to_datetime(df["date"])
         if "universe" not in df.columns:
-            df["universe"] = df["ticker"].apply(
-                lambda t: "fi" if t in FI_TICKERS else "equity"
-            )
+            df["universe"] = df["ticker"].apply(lambda t: "fi" if t in FI_TICKERS else "equity")
 
         dedup_cols = [c for c in ["date", "ticker", "universe"] if c in df.columns]
         if dedup_cols:
@@ -146,9 +144,7 @@ def _synthetic_demo() -> pd.DataFrame:
                 }
             )
     df = pd.DataFrame(rows)
-    df["rank"] = (
-        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
-    )
+    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
     return df
 
 
@@ -202,9 +198,7 @@ st.caption(
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
 avg_conf = (
-    df_today["dispersion_confidence"].mean()
-    if "dispersion_confidence" in df_today.columns
-    else 0
+    df_today["dispersion_confidence"].mean() if "dispersion_confidence" in df_today.columns else 0
 )
 avg_vix = df_today["vix"].mean() if "vix" in df_today.columns else 0
 alpha_w = df_today["alpha_w"].mean() if "alpha_w" in df_today.columns else 0.4
@@ -234,9 +228,7 @@ with tab1:
     try:
         import plotly.graph_objects as go
 
-        df_plot = df_today.sort_values("score_adj", ascending=False).reset_index(
-            drop=True
-        )
+        df_plot = df_today.sort_values("score_adj", ascending=False).reset_index(drop=True)
         colours = [UNIVERSE_COLOURS.get(t, "#888") for t in df_plot["ticker"]]
 
         fig = go.Figure()
@@ -246,9 +238,7 @@ with tab1:
                 y=df_plot["score_adj"],
                 marker_color=colours,
                 marker_line_width=0,
-                text=df_plot.apply(
-                    lambda r: f"#{int(r['rank'])}  {r['score_adj']:.2f}", axis=1
-                ),
+                text=df_plot.apply(lambda r: f"#{int(r['rank'])}  {r['score_adj']:.2f}", axis=1),
                 textposition="outside",
                 textfont=dict(size=10),
                 name="Score (z)",
@@ -259,12 +249,8 @@ with tab1:
                 error_y=dict(
                     type="data",
                     symmetric=False,
-                    array=(df_plot["ci_upper"] - df_plot["score_adj"])
-                    .clip(lower=0)
-                    .tolist(),
-                    arrayminus=(df_plot["score_adj"] - df_plot["ci_lower"])
-                    .clip(lower=0)
-                    .tolist(),
+                    array=(df_plot["ci_upper"] - df_plot["score_adj"]).clip(lower=0).tolist(),
+                    arrayminus=(df_plot["score_adj"] - df_plot["ci_lower"]).clip(lower=0).tolist(),
                     color="rgba(80,80,80,0.45)",
                     thickness=1.5,
                     width=4,
@@ -335,9 +321,7 @@ with tab1:
 
 with tab2:
     st.subheader("Score History — Top ETFs")
-    pivot = df.pivot_table(
-        index="date", columns="ticker", values="score_adj"
-    ).sort_index()
+    pivot = df.pivot_table(index="date", columns="ticker", values="score_adj").sort_index()
     top_tickers = pivot.abs().mean().nlargest(top_n).index.tolist()
     try:
         import plotly.graph_objects as go
@@ -426,20 +410,14 @@ with tab3:
         # Dispersion confidence
         if "dispersion_confidence" in df.columns:
             conf_df = (
-                df.groupby("date")["dispersion_confidence"]
-                .mean()
-                .reset_index()
-                .tail(lookback)
+                df.groupby("date")["dispersion_confidence"].mean().reset_index().tail(lookback)
             )
             st.subheader("Cross-Sectional Dispersion Confidence")
-            st.caption(
-                "Below 50% = low signal environment; engine scores are dampened."
-            )
+            st.caption("Below 50% = low signal environment; engine scores are dampened.")
             try:
                 fig4 = go.Figure()
                 conf_colours = [
-                    "#E74C3C" if v < 0.5 else "#27AE60"
-                    for v in conf_df["dispersion_confidence"]
+                    "#E74C3C" if v < 0.5 else "#27AE60" for v in conf_df["dispersion_confidence"]
                 ]
                 fig4.add_trace(
                     go.Bar(
