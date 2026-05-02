@@ -175,9 +175,7 @@ with st.sidebar:
 # ── Load data ─────────────────────────────────────────────────────────────────
 df_all, is_demo = load_results()
 if is_demo:
-    st.info(
-        "📊 Displaying **synthetic demo data**. Live results appear after the next training run."
-    )
+    st.info("📊 Displaying **synthetic demo data**. Live results appear after the next training run.")
 
 if universe_opt != "combined":
     df_all = df_all[df_all["universe"] == universe_opt]
@@ -197,9 +195,7 @@ st.caption(
 )
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
-avg_conf = (
-    df_today["dispersion_confidence"].mean() if "dispersion_confidence" in df_today.columns else 0
-)
+avg_conf = df_today["dispersion_confidence"].mean() if "dispersion_confidence" in df_today.columns else 0
 avg_vix = df_today["vix"].mean() if "vix" in df_today.columns else 0
 alpha_w = df_today["alpha_w"].mean() if "alpha_w" in df_today.columns else 0.4
 gamma_w = df_today["gamma_w"].mean() if "gamma_w" in df_today.columns else 0.2
@@ -409,9 +405,7 @@ with tab3:
 
         # Dispersion confidence
         if "dispersion_confidence" in df.columns:
-            conf_df = (
-                df.groupby("date")["dispersion_confidence"].mean().reset_index().tail(lookback)
-            )
+            conf_df = df.groupby("date")["dispersion_confidence"].mean().reset_index().tail(lookback)
             st.subheader("Cross-Sectional Dispersion Confidence")
             st.caption("Below 50% = low signal environment; engine scores are dampened.")
             try:

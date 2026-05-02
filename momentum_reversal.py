@@ -188,9 +188,7 @@ def fit_ols_weights(
 
     try:
         # Full OLS via least squares
-        coeffs, _, _, _ = np.linalg.lstsq(
-            np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None
-        )
+        coeffs, _, _, _ = np.linalg.lstsq(np.column_stack([np.ones(len(x_mat)), x_mat]), y, rcond=None)
         alpha, beta, gamma, delta = (
             coeffs[1],
             coeffs[2],

@@ -34,9 +34,7 @@ def push_results(
         df_existing = existing.to_pandas()
         df_existing["date"] = pd.to_datetime(df_existing["date"]).dt.strftime("%Y-%m-%d")
         dedup_cols = [
-            c
-            for c in ["date", "ticker", "universe"]
-            if c in df_existing.columns and c in df.columns
+            c for c in ["date", "ticker", "universe"] if c in df_existing.columns and c in df.columns
         ]
         if dedup_cols:
             new_keys = set(zip(*[df[c] for c in dedup_cols]))
