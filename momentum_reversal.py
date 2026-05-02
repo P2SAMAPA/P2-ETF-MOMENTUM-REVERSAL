@@ -283,9 +283,7 @@ def run_engine(
 
     # Forward returns for OLS fitting
     log_prices = np.log(prices)
-    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(
-        how="all"
-    )
+    forward_ret = (log_prices.shift(-FORWARD_RETURN_DAYS) - log_prices).dropna(how="all")
 
     # Dispersion history tracker
     disp_history: list[float] = []
@@ -359,9 +357,7 @@ def run_engine(
             print(f"  Processed {i + 1}/{len(valid_dates)} dates...")
 
     df = pd.DataFrame(rows)
-    df["rank"] = (
-        df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
-    )
+    df["rank"] = df.groupby("date")["score_adj"].rank(ascending=False, method="min").astype(int)
 
     scores_path = out / "scores.csv"
     df.to_csv(scores_path, index=False)
