@@ -86,8 +86,6 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="P2-ETF-MOMENTUM-REVERSAL Engine")
-    parser.add_argument(
-        "--universe", default="combined", choices=["fi", "equity", "combined"]
-    )
+    parser.add_argument("--universe", default="combined", choices=["fi", "equity", "combined"])
     parser.add_argument("--output_dir", default="results")
     cmd_run(parser.parse_args())
