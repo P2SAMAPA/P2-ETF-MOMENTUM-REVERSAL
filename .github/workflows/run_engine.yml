@@ -8,7 +8,7 @@ on:
         required: true
         default: "all"
   schedule:
-    - cron: "30 03 * * 1-6"  # every Tuesday 03:00 UTC (after US market close Monday)
+    - cron: "30 22 * * 1-6"  # every Tuesday 03:00 UTC (after US market close Monday)
 
 jobs:
   run:
