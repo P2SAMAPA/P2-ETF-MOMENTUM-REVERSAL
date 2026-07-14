@@ -70,9 +70,9 @@ def run_daily_inference(universe: str = "combined") -> None:
     vix_level = float(vix.get(last_date, 20.0))
     adj_weights = vix_regime_adjust(weights, vix_level)
 
-    # Dispersion confidence
-    # multi_ret has MultiIndex columns: (ticker, horizon) — use xs to slice by horizon
-    r12m_all = multi_ret.xs("r_12m_skip", axis=1, level=1)
+    # FIX: multi_ret has MultiIndex columns: (horizon, ticker)
+    # Use level=0 to slice by horizon
+    r12m_all = multi_ret.xs("r_12m_skip", axis=1, level=0)  # FIXED: level=1 -> level=0
     r12m_history = r12m_all.std(axis=1).dropna()
     disp_series = r12m_history.tail(DISPERSION_WINDOW)
     r12m_today = r12m_all.iloc[-1]
