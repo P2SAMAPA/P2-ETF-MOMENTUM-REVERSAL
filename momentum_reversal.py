@@ -45,7 +45,7 @@ def compute_multi_horizon_returns(prices: pd.DataFrame) -> pd.DataFrame:
         prices: (T, N) DataFrame of adjusted close prices.
 
     Returns:
-        DataFrame with MultiIndex columns: (ticker, horizon).
+        DataFrame with MultiIndex columns: (horizon, ticker).
     """
     tickers = prices.columns.tolist()
     log_prices = np.log(prices)
@@ -75,7 +75,7 @@ def compute_multi_horizon_returns(prices: pd.DataFrame) -> pd.DataFrame:
     # Concatenate along axis=1 with outer level as ticker
     result = pd.concat(all_data, axis=1)
 
-    # Rename columns to have (ticker, horizon) structure
+    # Rename columns to have (horizon, ticker) structure
     result.columns = result.columns.swaplevel(0, 1)
     result.columns = result.columns.set_names(["horizon", "ticker"])
 
@@ -98,18 +98,18 @@ def compute_raw_scores(
     """Compute the momentum-reversal composite score for one date.
 
     Args:
-        multi_returns: Single-row slice with columns (ticker, horizon).
+        multi_returns: Single-row slice with columns (horizon, ticker).
         weights: Dict with keys alpha, beta, gamma, delta.
 
     Returns:
         Series of scores indexed by ticker.
     """
-    # MultiIndex columns are (ticker, horizon) — use xs to slice by horizon (level=1)
-    tickers = multi_returns.columns.get_level_values(0).unique()
+    # MultiIndex columns are (horizon, ticker) — use xs to slice by horizon (level=0)
+    tickers = multi_returns.columns.get_level_values(1).unique()
 
     def get_horizon(name: str) -> pd.Series:
         try:
-            return multi_returns.xs(name, axis=1, level=1).iloc[0]
+            return multi_returns.xs(name, axis=1, level=0).iloc[0]
         except (KeyError, IndexError):
             return pd.Series(np.nan, index=tickers)
 
@@ -155,8 +155,8 @@ def fit_ols_weights(
     if len(dates) < 126:
         return default
 
-    # FIX: Get tickers from the new column structure
-    tickers = multi_returns.columns.get_level_values(0).unique().tolist()
+    # FIX: Get tickers from the new column structure (level=1)
+    tickers = multi_returns.columns.get_level_values(1).unique().tolist()
     x_rows, y_rows = [], []
 
     for date in dates:
@@ -177,10 +177,10 @@ def fit_ols_weights(
                 continue
 
             # Build feature vector for this ticker on this date
-            # MultiIndex columns are (ticker, horizon) — xs by horizon level=1
+            # MultiIndex columns are (horizon, ticker) — xs by horizon level=0
             def gz(name: str) -> float:
                 try:
-                    val = mr_row.xs(name, axis=1, level=1)[ticker].iloc[0]
+                    val = mr_row.xs(name, axis=1, level=0)[ticker].iloc[0]
                     return float(val) if np.isfinite(val) else 0.0
                 except Exception:
                     return 0.0
@@ -322,10 +322,10 @@ def run_engine(
         vix_level = float(vix.get(date, 20.0))
         adj_weights = vix_regime_adjust(current_weights, vix_level)
 
-        # FIX: Get r_12m_skip data for today
+        # FIX: Get r_12m_skip data for today (level=0 is horizon)
         r12m_today = (
-            multi_ret.xs("r_12m_skip", axis=1, level=1).loc[date]
-            if "r_12m_skip" in multi_ret.columns.get_level_values(1)
+            multi_ret.xs("r_12m_skip", axis=1, level=0).loc[date]
+            if "r_12m_skip" in multi_ret.columns.get_level_values(0)
             else pd.Series()
         )
         disp_series = pd.Series(disp_history[-DISPERSION_WINDOW:])
