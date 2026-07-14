@@ -45,28 +45,41 @@ def compute_multi_horizon_returns(prices: pd.DataFrame) -> pd.DataFrame:
         prices: (T, N) DataFrame of adjusted close prices.
 
     Returns:
-        DataFrame with columns: r_1m, r_3m, r_6m, r_12m_skip, r_36m per ETF.
-        MultiIndex columns: (horizon, ticker).
+        DataFrame with MultiIndex columns: (ticker, horizon).
     """
     tickers = prices.columns.tolist()
     log_prices = np.log(prices)
-    results = {}
-
+    
+    # Dictionary to collect data for each ticker
+    all_data = {}
+    
     for ticker in tickers:
         lp = log_prices[ticker]
-        row = {}
-
+        
+        # FIX: Create a temporary DataFrame with all horizons as columns
+        # Use .values to ensure we get 1D arrays
+        temp_df = pd.DataFrame(index=prices.index)
+        
         # Simple horizon returns
-        for name, lb in [("r_1m", 21), ("r_3m", 63), ("r_6m", 126), ("r_36m", 756)]:
-            row[name] = lp - lp.shift(lb)
-
+        temp_df["r_1m"] = (lp - lp.shift(21)).values
+        temp_df["r_3m"] = (lp - lp.shift(63)).values
+        temp_df["r_6m"] = (lp - lp.shift(126)).values
+        temp_df["r_36m"] = (lp - lp.shift(756)).values
+        
         # Skip-month momentum: 12m return excluding most recent month
-        # r_12m_skip[t] = log(P[t-21] / P[t-252])
-        row["r_12m_skip"] = lp.shift(21) - lp.shift(252)
-
-        results[ticker] = pd.DataFrame(row, index=prices.index)
-
-    return pd.concat(results, axis=1)
+        temp_df["r_12m_skip"] = (lp.shift(21) - lp.shift(252)).values
+        
+        # Store as a DataFrame with multi-level columns
+        all_data[ticker] = temp_df
+    
+    # Concatenate along axis=1 with outer level as ticker
+    result = pd.concat(all_data, axis=1)
+    
+    # Rename columns to have (ticker, horizon) structure
+    result.columns = result.columns.swaplevel(0, 1)
+    result.columns = result.columns.set_names(["horizon", "ticker"])
+    
+    return result
 
 
 def cross_sectional_zscore(series: pd.Series) -> pd.Series:
@@ -85,7 +98,7 @@ def compute_raw_scores(
     """Compute the momentum-reversal composite score for one date.
 
     Args:
-        multi_returns: Single-row slice with columns (horizon, ticker).
+        multi_returns: Single-row slice with columns (ticker, horizon).
         weights: Dict with keys alpha, beta, gamma, delta.
 
     Returns:
@@ -142,7 +155,8 @@ def fit_ols_weights(
     if len(dates) < 126:
         return default
 
-    tickers = multi_returns.columns.get_level_values(1).unique().tolist()
+    # FIX: Get tickers from the new column structure
+    tickers = multi_returns.columns.get_level_values(0).unique().tolist()
     x_rows, y_rows = [], []
 
     for date in dates:
@@ -308,12 +322,11 @@ def run_engine(
         vix_level = float(vix.get(date, 20.0))
         adj_weights = vix_regime_adjust(current_weights, vix_level)
 
-        # Dispersion filter
-        # multi_ret has MultiIndex columns (ticker, horizon) — slice by horizon level
-        col_horizons = multi_ret.columns.get_level_values(1)
+        # FIX: Slice by ticker level (level=0) instead of horizon level (level=1)
+        col_tickers = multi_ret.columns.get_level_values(0)
         r12m_today = (
             multi_ret.xs("r_12m_skip", axis=1, level=1).loc[date]
-            if "r_12m_skip" in col_horizons
+            if "r_12m_skip" in multi_ret.columns.get_level_values(1)
             else pd.Series()
         )
         disp_series = pd.Series(disp_history[-DISPERSION_WINDOW:])
