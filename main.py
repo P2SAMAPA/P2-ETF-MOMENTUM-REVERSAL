@@ -40,8 +40,7 @@ EQ_TICKERS = [
     "IWD",
     "IWO",
     "XBI",
-    "XLB",
-    "XLRE",
+    "XLRE",  # FIXED: Removed duplicate XLB
 ]
 COMBINED_TICKERS = FI_TICKERS + EQ_TICKERS
 
