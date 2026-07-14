@@ -49,36 +49,36 @@ def compute_multi_horizon_returns(prices: pd.DataFrame) -> pd.DataFrame:
     """
     tickers = prices.columns.tolist()
     log_prices = np.log(prices)
-    
+
     # Dictionary to collect data for each ticker
     all_data = {}
-    
+
     for ticker in tickers:
         lp = log_prices[ticker]
-        
+
         # FIX: Create a temporary DataFrame with all horizons as columns
         # Use .values to ensure we get 1D arrays
         temp_df = pd.DataFrame(index=prices.index)
-        
+
         # Simple horizon returns
         temp_df["r_1m"] = (lp - lp.shift(21)).values
         temp_df["r_3m"] = (lp - lp.shift(63)).values
         temp_df["r_6m"] = (lp - lp.shift(126)).values
         temp_df["r_36m"] = (lp - lp.shift(756)).values
-        
+
         # Skip-month momentum: 12m return excluding most recent month
         temp_df["r_12m_skip"] = (lp.shift(21) - lp.shift(252)).values
-        
+
         # Store as a DataFrame with multi-level columns
         all_data[ticker] = temp_df
-    
+
     # Concatenate along axis=1 with outer level as ticker
     result = pd.concat(all_data, axis=1)
-    
+
     # Rename columns to have (ticker, horizon) structure
     result.columns = result.columns.swaplevel(0, 1)
     result.columns = result.columns.set_names(["horizon", "ticker"])
-    
+
     return result
 
 
